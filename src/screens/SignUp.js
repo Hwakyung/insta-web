@@ -1,6 +1,8 @@
+import { gql, useMutation } from "@apollo/client";
 import { faInstagram } from "@fortawesome/free-brands-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Helmet } from "react-helmet-async";
+import { useForm } from "react-hook-form";
+import { useHistory } from "react-router-dom";
 import styled from "styled-components";
 import AuthLayout from "../components/auth/AuthLayout";
 import BottomBox from "../components/auth/BottomBox";
@@ -12,40 +14,123 @@ import { FatLink } from "../components/shared";
 import routes from "../routes";
 
 const HeaderContainer = styled.div`
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
 
 const Subtitle = styled(FatLink)`
-    font-size:16px;
-    text-align:center;
-    margin-top:10px;
-`
+  font-size: 16px;
+  text-align: center;
+  margin-top: 10px;
+`;
+
+const CREATE_ACCOUNT_MUTATION = gql`
+  mutation createAccount(
+    $firstName: String!
+    $lastName: String
+    $username: String!
+    $email: String!
+    $password: String!
+  ) {
+    createAccount(
+      firstName: $firstName
+      lastName: $lastName
+      username: $username
+      email: $email
+      password: $password
+    ) {
+      ok
+      error
+    }
+  }
+`;
 
 function SignUp() {
+    const history = useHistory();
+    const onCompleted = (data) => {
+        const {
+            createAccount: { ok },
+        } = data;
+        if (!ok) {
+            return;
+        }
+        history.push(routes.home);
+    };
+    const [createAccount, { loading }] = useMutation(CREATE_ACCOUNT_MUTATION, {
+        onCompleted,
+    });
+    const { register, handleSubmit, formState } = useForm({
+        mode: "onChange",
+    });
+    const onSubmitValid = (data) => {
+        if (loading) {
+            return;
+        }
+        createAccount({
+            variables: {
+                ...data,
+            },
+        });
+    };
     return (
         <AuthLayout>
-            <Helmet><title>회원가입</title></Helmet>
-            {/* <PageTitle title="Sign Up" /> */}
+            <PageTitle title="Sign up" />
             <FormBox>
                 <HeaderContainer>
                     <FontAwesomeIcon icon={faInstagram} size="3x" />
                     <Subtitle>
                         Sign up to see photos and videos from your friends.
-                    </Subtitle>
+          </Subtitle>
                 </HeaderContainer>
-                <form>
-                    <Input type="text" placeholder="Name" />
-                    <Input type="text" placeholder="Email" />
-                    <Input type="text" placeholder="Username" />
-                    <Input type="password" placeholder="Password" />
-                    <Button type="submit" value="Sign up" />
+                <form onSubmit={handleSubmit(onSubmitValid)}>
+                    <Input
+                        ref={register({
+                            required: "First Name is required.",
+                        })}
+                        name="firstName"
+                        type="text"
+                        placeholder="First Name"
+                    />
+                    <Input
+                        ref={register}
+                        type="text"
+                        placeholder="Last Name"
+                        name="lastName"
+                    />
+                    <Input
+                        ref={register({
+                            required: "Email is required.",
+                        })}
+                        name="email"
+                        type="text"
+                        placeholder="Email"
+                    />
+                    <Input
+                        ref={register({
+                            required: "Username is required.",
+                        })}
+                        name="username"
+                        type="text"
+                        placeholder="Username"
+                    />
+                    <Input
+                        ref={register({
+                            required: "Password is required.",
+                        })}
+                        name="password"
+                        type="password"
+                        placeholder="Password"
+                    />
+                    <Button
+                        type="submit"
+                        value={loading ? "Loading..." : "Sign up"}
+                        disabled={!formState.isValid || loading}
+                    />
                 </form>
             </FormBox>
             <BottomBox cta="Have an account?" linkText="Log in" link={routes.home} />
         </AuthLayout>
     );
 }
-
 export default SignUp;
