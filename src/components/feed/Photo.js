@@ -8,6 +8,7 @@ import { faHeart as SolidHeart } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import styled from "styled-components";
 import PropTypes from "prop-types";
+import Comments from "../feed/Comments"
 
 import Avatar from "../../components/Avatar";
 import { FatText } from "../../components/shared";
@@ -71,11 +72,49 @@ const Likes = styled(FatText)`
   margin-top: 15px;
   display: block;
 `;
+
+
+
 function Photo({ id, user, file, isLiked, likes }) {
+    const updateToggleLike = (cache, result) => {
+        const {
+            data: {
+                toggleLike: { ok },
+            },
+        } = result;
+        if (ok) {
+            const fragmentId = `Photo:${id}`
+            const fragment = gql`
+            fragment BSName on Photo {
+                isLiked
+                likes
+              }
+            `
+            const result = cache.readFragment({
+                id: fragmentId,
+                fragment
+            })
+
+            if ("isLiked" in result && 'likes' in result) {
+                const { isLiked: cacheIsLiked, likes: cacheLikes } = result;
+                cache.writeFragment({
+                    id: fragmentId,
+                    fragment,
+                    data: {
+                        isLiked: !cacheIsLiked,
+                        likes: cacheIsLiked ? cacheLikes - 1 : cacheLikes + 1
+                    }
+                })
+            }
+
+        };
+    }
+
     const [toggleLikeMutation, { loading }] = useMutation(TOGGLE_LIKE_MUTATION, {
         variables: {
             id,
-        }
+        },
+        update: updateToggleLike
     })
 
     return (
@@ -108,6 +147,12 @@ function Photo({ id, user, file, isLiked, likes }) {
                 <Likes>
                     {likes === 1 ? "1 like" : `${likes} likes`}
                 </Likes>
+                <Comments
+                    author={user.username}
+                    caption={caption}
+                    commentNumber={commentNumber}
+                    comments={comments}
+                />
             </PhotoData>
         </PhotoContainer>
     )
@@ -122,6 +167,8 @@ Photo.prototype = {
     file: PropTypes.string.isRequired,
     isLiked: PropTypes.bool.isRequired,
     likes: PropTypes.number.isRequired,
+    commentNumber: PropTypes.number.isRequired,
+
 };
 
 export default Photo;
