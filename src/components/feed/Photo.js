@@ -75,7 +75,7 @@ const Likes = styled(FatText)`
 
 
 
-function Photo({ id, user, file, isLiked, likes }) {
+function Photo({ id, user, file, isLiked, likes, caption, commentNumber, comments }) {
     const updateToggleLike = (cache, result) => {
         const {
             data: {
@@ -142,6 +142,7 @@ function Photo({ id, user, file, isLiked, likes }) {
                     {likes === 1 ? "1 like" : `${likes} likes`}
                 </Likes>
                 <Comments
+                    photoId={id}
                     author={user.username}
                     caption={caption}
                     commentNumber={commentNumber}
